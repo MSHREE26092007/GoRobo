@@ -23,8 +23,12 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+// Prefer the direct Render origin (CATALOG_SNAPSHOT_API_URL) so CI runners
+// bypass Cloudflare entirely; fall back to the public URL for local runs.
 const API_BASE = (
-  process.env.NEXT_PUBLIC_AMAZE_API_URL || "https://api.amazecc.com"
+  process.env.CATALOG_SNAPSHOT_API_URL ||
+  process.env.NEXT_PUBLIC_AMAZE_API_URL ||
+  "https://api.amazecc.com"
 ).replace(/\/+$/, "");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -81,7 +85,9 @@ async function fetchJson(url, timeoutMs = 30000, retries = 4) {
 async function main() {
   console.log(`[build-catalog-data] fetching catalog from ${API_BASE} ...`);
 
-  const payload = await fetchJson(`${API_BASE}/api/gorobo/items`);
+  // Render free tier can cold-start in tens of seconds — give the main fetch
+  // a generous window; retries with backoff cover the rest.
+  const payload = await fetchJson(`${API_BASE}/api/gorobo/items`, 90000);
   if (!payload?.success || !Array.isArray(payload.items)) {
     fail("unexpected /api/gorobo/items payload");
   }
@@ -89,7 +95,7 @@ async function main() {
   // Probe version info (best-effort — snapshot still valid without it).
   let lastUpdate = null;
   try {
-    const v = await fetchJson(`${API_BASE}/api/gorobo/version`, 10000);
+    const v = await fetchJson(`${API_BASE}/api/gorobo/version`, 15000, 2);
     if (v?.success) lastUpdate = v.lastUpdate;
   } catch {
     console.warn("[build-catalog-data] version probe failed (continuing)");

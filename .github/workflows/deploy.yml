@@ -54,7 +54,9 @@ jobs:
       - name: Build catalog snapshot (static CDN data)
         run: node scripts/build-catalog-data.mjs
         env:
-          NEXT_PUBLIC_AMAZE_API_URL: ${{ secrets.NEXT_PUBLIC_AMAZE_API_URL || 'https://api.amazecc.com' }}
+          # Fetch from the direct Render origin so CI runners bypass
+          # Cloudflare's bot protection on api.amazecc.com.
+          CATALOG_SNAPSHOT_API_URL: ${{ secrets.CATALOG_SNAPSHOT_API_URL || 'https://amazecc-api-jrsp.onrender.com' }}
       - name: Build with Next.js
         run: pnpm build
         env:
