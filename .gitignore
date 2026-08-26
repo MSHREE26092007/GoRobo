@@ -14,5 +14,5 @@ node_modules
 .next/
 .DS_Store
 out/
-scripts/
+scripts/secrets/
 .env
