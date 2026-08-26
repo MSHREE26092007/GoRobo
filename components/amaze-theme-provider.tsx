@@ -24,11 +24,17 @@ function PaletteInitializer() {
 function PaletteSyncer() {
   const { theme } = useTheme()
   const { paletteId, setPaletteId } = useColorPalette()
-  const paletteRef = useRef(paletteId)
-  paletteRef.current = paletteId
+  // Remember the last user-chosen (non-default) palette so it can be restored
+  // after the forced "default" pass on theme switches. Written only inside an
+  // effect — never during render.
+  const lastNonDefaultRef = useRef("default")
 
   useEffect(() => {
-    const id = paletteRef.current
+    if (paletteId !== "default") lastNonDefaultRef.current = paletteId
+  }, [paletteId])
+
+  useEffect(() => {
+    const id = lastNonDefaultRef.current
     if (id === "default") return
     setPaletteId("default")
     const raf = requestAnimationFrame(() => setPaletteId(id))
