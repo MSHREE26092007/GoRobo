@@ -36,13 +36,46 @@ function fail(msg) {
   process.exit(1);
 }
 
-async function fetchJson(url, timeoutMs = 30000) {
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
-  return res.json();
+// Cloudflare sits in front of api.amazecc.com and blocks datacenter IPs
+// (e.g. GitHub Actions runners) when requests look like bare scripts —
+// typically a missing/odd User-Agent. Send browser-ish headers.
+const REQUEST_HEADERS = {
+  Accept: "application/json",
+  "User-Agent":
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+  "Accept-Language": "en-US,en;q=0.9",
+}
+
+async function fetchJson(url, timeoutMs = 30000, retries = 4) {
+  let lastErr
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: REQUEST_HEADERS,
+        signal: AbortSignal.timeout(timeoutMs),
+      })
+      if (!res.ok) {
+        const body = (await res.text().catch(() => "")).slice(0, 200)
+        const hint =
+          res.status === 403 || res.status === 503
+            ? " — likely Cloudflare blocking the runner IP. Fix: add a Cloudflare WAF exception (Skip) rule for hostname api.amazecc.com, path starts with /api/gorobo/"
+            : ""
+        throw new Error(
+          `${url} -> HTTP ${res.status}${hint}${body ? ` :: ${body}` : ""}`,
+        )
+      }
+      return await res.json()
+    } catch (e) {
+      lastErr = e
+      console.warn(`[build-catalog-data] attempt ${attempt}/${retries} failed: ${e.message}`)
+      if (attempt < retries) {
+        const waitMs = attempt * 8000
+        console.warn(`[build-catalog-data] retrying in ${waitMs / 1000}s ...`)
+        await new Promise((r) => setTimeout(r, waitMs))
+      }
+    }
+  }
+  throw lastErr
 }
 
 async function main() {
