@@ -9,7 +9,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@amazecontinuityprojects/amazeui": "^1.5.3",
+    "@amazecontinuityprojects/amazeui": "^1.6.1",
     "@base-ui/react": "^1.5.0",
     "@vercel/analytics": "1.6.1",
     "class-variance-authority": "^0.7.1",

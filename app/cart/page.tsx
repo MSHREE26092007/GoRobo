@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Minus,
   PackageCheck,
+  PackagePlus,
   Plus,
   Radio,
   ShoppingBag,
@@ -46,6 +47,8 @@ import { formatINR } from "@/lib/products"
 import { buildCartInquiryUrl } from "@/lib/contact"
 import { placeOrder } from "@/lib/gorobo-api"
 import { useCart } from "@/components/cart-context"
+import { CartManagerBar } from "@/components/cart-manager-bar"
+import { CartProductSearch } from "@/components/cart-product-search"
 import { ThemeSwitcher } from "@/components/theme-switcher"
 import { GoRoboLogo } from "@/components/gorobo-logo"
 import { ResponsiveButton } from "@/components/responsive-button"
@@ -226,6 +229,11 @@ export default function CartPage() {
           </Button>
         </div>
 
+        {/* Multi-cart manager */}
+        <div className="mb-6">
+          <CartManagerBar />
+        </div>
+
         {lines.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-card/60 p-12 text-center shadow-xs">
             <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-secondary/80 text-muted-foreground shadow-inner">
@@ -233,8 +241,11 @@ export default function CartPage() {
             </div>
             <h2 className="text-xl font-bold text-foreground">Your cart is empty</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Explore our catalogue of robotics parts, sensors, motors, and microcontrollers, and easily add them to your inquiry cart.
+              Search below to add products straight from this page, or explore the full catalogue of robotics parts.
             </p>
+            <div className="mx-auto mt-6 max-w-xl text-left">
+              <CartProductSearch />
+            </div>
             <div className="mt-6 flex justify-center gap-3">
               <Button onClick={() => router.push("/")} className="gap-2">
                 <ShoppingCart className="size-4" aria-hidden="true" />
@@ -340,7 +351,27 @@ export default function CartPage() {
                 </CardContent>
               </Card>
 
-              {/* 2. Delivery Options Card (Stacked UI, Title above Subtitle, AmazeUI) */}
+              {/* 2. Find & Add Products Card */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <IconBadge color="emerald" size="sm">
+                      <PackagePlus className="size-4" aria-hidden="true" />
+                    </IconBadge>
+                    <div>
+                      <CardTitle>Add More Products</CardTitle>
+                      <CardDescription>
+                        Search the full catalog and add items without leaving this page
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CartProductSearch />
+                </CardContent>
+              </Card>
+
+              {/* 3. Delivery Options Card (Stacked UI, Title above Subtitle, AmazeUI) */}
               <Card>
                 <CardHeader
                   action={
@@ -453,7 +484,7 @@ export default function CartPage() {
                 </CardContent>
               </Card>
 
-              {/* 3. Customer & Location Details Card */}
+              {/* 4. Customer & Location Details Card */}
               <Card>
                 <CardHeader
                   action={

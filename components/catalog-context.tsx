@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { products as localProducts, type Product } from "@/lib/products"
 import { fetchItems } from "@/lib/gorobo-api"
+import { loadStaticCatalog } from "@/lib/catalog-static"
 
 type CatalogContextValue = {
   activeCategory: string | null
@@ -10,6 +11,8 @@ type CatalogContextValue = {
   isSidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
   items: Product[]
+  /** Where the current items came from — useful for debugging. */
+  source: "static" | "api" | "bundled" | "loading"
 }
 
 const CatalogContext = createContext<CatalogContextValue | null>(null)
@@ -18,6 +21,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [items, setItems] = useState<Product[]>(localProducts)
+  const [source, setSource] = useState<CatalogContextValue["source"]>("loading")
 
   // Restore the persisted collapsed state AFTER hydration so the server
   // HTML (expanded) always matches the first client render.
@@ -31,13 +35,31 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Load the live catalog from the AmazeCC API; the bundled catalog is the
-  // fallback while loading or when the API is unreachable.
+  // Catalog loading order (first success wins):
+  //   1. Static CDN snapshot (/data/catalog/*) — fast, free, no API hit.
+  //   2. Live API full list — fallback when no snapshot exists yet.
+  //   3. Bundled list — already rendered while loading; kept on total failure.
   useEffect(() => {
     let cancelled = false
-    fetchItems().then((apiItems) => {
-      if (!cancelled && apiItems) setItems(apiItems)
-    })
+
+    async function load() {
+      const staticProducts = await loadStaticCatalog()
+      if (!cancelled && staticProducts?.length) {
+        setItems(staticProducts)
+        setSource("static")
+        return
+      }
+
+      const apiItems = await fetchItems()
+      if (!cancelled && apiItems?.length) {
+        setItems(apiItems)
+        setSource("api")
+      } else if (!cancelled) {
+        setSource("bundled")
+      }
+    }
+
+    load()
     return () => {
       cancelled = true
     }
@@ -53,7 +75,7 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <CatalogContext.Provider value={{ activeCategory, setActiveCategory, isSidebarOpen, setSidebarOpen, items }}>
+    <CatalogContext.Provider value={{ activeCategory, setActiveCategory, isSidebarOpen, setSidebarOpen, items, source }}>
       {children}
     </CatalogContext.Provider>
   )

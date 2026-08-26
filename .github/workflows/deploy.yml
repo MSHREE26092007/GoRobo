@@ -4,6 +4,9 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
+  schedule:
+    # Refresh the static catalog snapshot every 6 hours.
+    - cron: "0 */6 * * *"
 
 permissions:
   contents: read
@@ -39,6 +42,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build catalog snapshot (static CDN data)
+        run: node scripts/build-catalog-data.mjs
+        env:
+          NEXT_PUBLIC_AMAZE_API_URL: ${{ secrets.NEXT_PUBLIC_AMAZE_API_URL || 'https://api.amazecc.com' }}
 
       - name: Build Next.js Static Site
         run: pnpm run build

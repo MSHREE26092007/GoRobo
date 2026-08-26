@@ -1,6 +1,8 @@
 allowBuilds:
-  esbuild: set this to true or false
-  msw: set this to true or false
+  esbuild: true
+  msw: true
+minimumReleaseAgeExclude:
+  - '@amazecontinuityprojects/amazeui@1.6.1'
 onlyBuiltDependencies:
   - esbuild
   - msw
