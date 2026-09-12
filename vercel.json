@@ -3,15 +3,12 @@
   "framework": "nextjs",
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "node scripts/build-catalog-data.mjs && pnpm build",
-  "outputDirectory": "out",
   "env": {
     "CATALOG_SNAPSHOT_API_URL": "https://amazecc-api-jrsp.onrender.com"
   },
-  "cleanUrls": true,
-  "trailingSlash": false,
   "headers": [
     {
-      "source": "/data/catalog/index.(.*).json",
+      "source": "/data/catalog/index.:hash.json",
       "headers": [
         {
           "key": "Cache-Control",
