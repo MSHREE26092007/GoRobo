@@ -4,6 +4,9 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "node scripts/build-catalog-data.mjs && pnpm build",
   "outputDirectory": "out",
+  "env": {
+    "CATALOG_SNAPSHOT_API_URL": "https://amazecc-api-jrsp.onrender.com"
+  },
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
