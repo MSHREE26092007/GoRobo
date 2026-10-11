@@ -25,10 +25,12 @@ import {
   Package,
   Plane,
   Radio,
+  ShieldCheck,
   ShoppingCart,
   Sparkles,
   Tag,
   ToggleLeft,
+  Truck,
   Wifi,
   Zap,
 } from "lucide-react"
@@ -194,6 +196,12 @@ export function SiteSidebar({
             }
             onClick={() => router.push("/cart")}
           />
+          <SidebarItem
+            icon={<Truck className="size-5" aria-hidden="true" />}
+            label="Track Order"
+            isActive={pathname === "/track"}
+            onClick={() => router.push("/track")}
+          />
         </SidebarGroupRow>
 
         <SidebarGroupRow>
@@ -261,6 +269,12 @@ export function SiteSidebar({
             icon={<GitFork className="size-5" aria-hidden="true" />}
             label="Open Source"
             onClick={() => window.open(GITHUB_REPO_URL, "_blank", "noopener,noreferrer")}
+          />
+          <SidebarItem
+            icon={<ShieldCheck className="size-5" aria-hidden="true" />}
+            label="Admin"
+            isActive={pathname === "/admin"}
+            onClick={() => router.push("/admin")}
           />
         </SidebarGroupRow>
       </SidebarContent>

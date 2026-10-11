@@ -1,4 +1,5 @@
 import { products as localProducts, type Product } from "@/lib/products"
+import { insertOrder } from "@/lib/orders-db"
 
 export const GOROBO_API_URL =
   process.env.NEXT_PUBLIC_GOROBO_API_URL ??
@@ -90,5 +91,21 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
   if (!res.ok || !data?.success) {
     throw new Error(data?.error || `Order could not be placed (HTTP ${res.status})`)
   }
-  return data.order as PlacedOrder
+  const placed = data.order as PlacedOrder
+
+  // Also persist to Supabase so the admin dashboard can track all orders.
+  // We resolve product names from the items array if available.
+  const subtotal = input.items.reduce((sum, it) => {
+    return sum + it.quantity * 0 // price not available here; stored in items
+  }, 0)
+  insertOrder({
+    customer_name: input.name,
+    phone: input.phone,
+    delivery_mode: input.deliveryMode ?? "normal",
+    items: input.items.map((it) => ({ itemId: it.itemId, quantity: it.quantity })),
+    subtotal: placed.total ?? 0,
+    maps_url: input.mapsUrl,
+  }).catch((err) => console.warn("[placeOrder] Supabase save failed (non-fatal):", err))
+
+  return placed
 }

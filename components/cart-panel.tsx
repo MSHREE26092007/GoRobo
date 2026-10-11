@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { CheckCircle2, MessageCircle, Minus, Plus, ShoppingBag, Trash2, Truck, Zap } from "lucide-react"
 import {
   Badge,
@@ -15,6 +16,7 @@ import {
 import { formatINR } from "@/lib/products"
 import { buildCartInquiryUrl } from "@/lib/contact"
 import { placeOrder } from "@/lib/gorobo-api"
+import { insertOrder } from "@/lib/orders-db"
 import { SHOW_BUZZ_EXTRA_CHARGES } from "@/lib/site"
 import { useCart } from "@/components/cart-context"
 
@@ -24,6 +26,7 @@ type CartPanelProps = {
 }
 
 export function CartPanel({ open, onOpenChange }: CartPanelProps) {
+  const router = useRouter()
   const { lines, count, total, setQty, removeItem, clear } = useCart()
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
@@ -44,6 +47,22 @@ export function CartPanel({ open, onOpenChange }: CartPanelProps) {
     }
 
     setStatus("submitting")
+
+    // Always save to Supabase (for admin tracking) regardless of backend API status
+    const orderSubtotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0)
+    insertOrder({
+      customer_name: name.trim(),
+      phone: digits,
+      delivery_mode: deliveryMode,
+      items: lines.map((l) => ({
+        itemId: l.product.id,
+        name: l.product.name,
+        quantity: l.qty,
+        price: l.product.price,
+      })),
+      subtotal: orderSubtotal,
+    }).catch((err) => console.warn("[CartPanel] Supabase order save failed (non-fatal):", err))
+
     try {
       await placeOrder({
         name: name.trim(),
@@ -51,13 +70,13 @@ export function CartPanel({ open, onOpenChange }: CartPanelProps) {
         items: lines.map((l) => ({ itemId: l.product.id, quantity: l.qty })),
         deliveryMode,
       })
-      window.open(buildCartInquiryUrl(lines, deliveryMode), "_blank", "noopener,noreferrer")
-      clear()
-      setStatus("done")
-    } catch (err) {
-      setStatus("idle")
-      setError(err instanceof Error ? err.message : "Could not place your inquiry. Try again.")
+    } catch {
+      // Backend API unavailable — we already saved to Supabase, continue to WhatsApp
     }
+
+    window.open(buildCartInquiryUrl(lines, deliveryMode), "_blank", "noopener,noreferrer")
+    clear()
+    setStatus("done")
   }
 
   return (
@@ -82,9 +101,22 @@ export function CartPanel({ open, onOpenChange }: CartPanelProps) {
               <Text className="text-xs text-muted-foreground">
                 Go RoBo has your details. Expect a reply on WhatsApp shortly.
               </Text>
-              <Button size="sm" className="mt-2" onClick={() => onOpenChange(false)}>
-                Done
-              </Button>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    onOpenChange(false)
+                    router.push("/track")
+                  }}
+                >
+                  <Truck className="size-4 mr-1.5" />
+                  Track Order
+                </Button>
+                <Button size="sm" onClick={() => onOpenChange(false)}>
+                  Done
+                </Button>
+              </div>
             </View>
           ) : (
             <View className="flex flex-col items-center gap-3 px-6 py-12 text-center">

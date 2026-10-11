@@ -1,11 +1,17 @@
 "use client"
 
+import { usePathname } from "next/navigation"
 import { CatalogProvider, useCatalog } from "@/components/catalog-context"
 import { CartProvider } from "@/components/cart-context"
 import { SiteSidebar } from "@/components/site-sidebar"
 
 function ShellInner({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
   const { activeCategory, setActiveCategory, isSidebarOpen, setSidebarOpen } = useCatalog()
+
+  if (pathname?.startsWith("/admin")) {
+    return <>{children}</>
+  }
 
   return (
     <div
